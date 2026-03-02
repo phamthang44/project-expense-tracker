@@ -15,6 +15,16 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.unit.sp
 import com.thang.projectexpensetracker.ui.theme.*
 
@@ -208,43 +218,79 @@ enum class BottomNavItem(val label: String, val icon: ImageVector, val route: St
     Settings("Settings", Icons.Default.Settings, "settings")
 }
 
+
 @Composable
 fun AppBottomNavigationBar(
     currentRoute: String,
     onNavigate: (String) -> Unit
 ) {
-    Surface(
-        tonalElevation = 8.dp,
-        shadowElevation = 8.dp,
-        color = MaterialTheme.colorScheme.surface
+    // Floating glassy container
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 16.dp), // Floating offset
+        contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
-        NavigationBar(
-            containerColor = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp
+        Row(
+            modifier = Modifier
+                .fillMaxWidth(0.9f) // Slight inset
+                .background(
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    shape = CircleShape
+                )
+                // Using shadow/elevation on the row itself
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
         ) {
             val items = BottomNavItem.values()
             items.forEach { item ->
-                NavigationBarItem(
-                    selected = currentRoute == item.route,
-                    onClick = {
-                        if (currentRoute != item.route) {
-                            onNavigate(item.route)
-                        }
-                    },
-                    icon = { Icon(item.icon, contentDescription = item.label) },
-                    label = {
-                        Text(
-                            item.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (currentRoute == item.route) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = MaterialTheme.colorScheme.primary,
-                        selectedTextColor = MaterialTheme.colorScheme.primary,
-                        indicatorColor = MaterialTheme.colorScheme.primaryContainer
-                    )
+                val selected = currentRoute == item.route
+                val contentColor by animateColorAsState(
+                    targetValue = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    animationSpec = tween(300),
+                    label = "navColor"
                 )
+                val bgColor by animateColorAsState(
+                    targetValue = if (selected) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) else Color.Transparent,
+                    animationSpec = tween(300),
+                    label = "navBg"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .background(color = bgColor, shape = CircleShape)
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {
+                                if (!selected) onNavigate(item.route)
+                            }
+                        )
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    contentAlignment = androidx.compose.ui.Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = item.label,
+                            tint = contentColor,
+                            modifier = Modifier.size(26.dp)
+                        )
+                        if (selected) {
+                            Text(
+                                text = item.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = contentColor,
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                }
             }
         }
     }
