@@ -24,7 +24,6 @@ interface ExpenseDao {
     @Query("SELECT * FROM expenses WHERE projectId = :projectId")
     fun getExpensesByProject(projectId: Long): Flow<List<ExpenseEntity>>
 
-    // Thêm hàm lấy 1 expense để sửa
     @Query("SELECT * FROM expenses WHERE expenseId = :id")
     suspend fun getExpenseById(id: Long): ExpenseEntity?
 

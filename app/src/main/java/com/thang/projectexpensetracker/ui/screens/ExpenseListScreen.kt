@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.thang.projectexpensetracker.data.entity.ExpenseEntity
@@ -167,7 +168,14 @@ fun ExpenseListScreen(
                                 Icon(Icons.Default.Receipt, null, tint = ElGrey, modifier = Modifier.size(14.dp))
                                 Text("Total Spent", style = MaterialTheme.typography.bodySmall, color = ElGrey)
                             }
-                            Text("$${listFmt(totalSpent)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = ElDark)
+                            Text(
+                                "$${listFmt(totalSpent)}",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = ElDark,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                             if (expenses.isNotEmpty()) {
                                 Text(
                                     "↑ ${expenses.size} expense${if (expenses.size != 1) "s" else ""}",
@@ -191,7 +199,14 @@ fun ExpenseListScreen(
                                 Icon(Icons.Default.AccountBalance, null, tint = ElGrey, modifier = Modifier.size(14.dp))
                                 Text("Total Budget", style = MaterialTheme.typography.bodySmall, color = ElGrey)
                             }
-                            Text("$${listFmt(budget)}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold, color = ElDark)
+                            Text(
+                                "$${listFmt(budget)}",
+                                style = MaterialTheme.typography.titleLarge,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = ElDark,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
                             // Mini progress bar
                             Box(
                                 modifier = Modifier

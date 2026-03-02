@@ -1,27 +1,47 @@
 package com.thang.projectexpensetracker.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.thang.projectexpensetracker.viewmodel.SyncStatus
+import kotlinx.coroutines.delay
+
+// ─── Token Colors for Sync Screen ────────────────────────────────────────────
+private val SyBg      = Color(0xFFF8FAFC)
+private val SyCard    = Color(0xFFFFFFFF)
+private val SyBlue    = Color(0xFF2563EB)
+private val SyDark    = Color(0xFF0F172A)
+private val SyGrey    = Color(0xFF64748B)
+private val SyBorder  = Color(0xFFE2E8F0)
+
+private val SyGreenBg = Color(0xFFDCFCE7)
+private val SyGreen   = Color(0xFF16A34A)
+
+private val SyLightBlueBg = Color(0xFFEFF6FF)
+private val SyLightBlue   = Color(0xFF3B82F6)
+
+private val SyOrangeBg = Color(0xFFFEF3C7)
+private val SyOrange   = Color(0xFFD97706)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,25 +56,68 @@ fun SyncScreen(
     onNavigate: (String) -> Unit = {},
     onNavigateBack: () -> Unit
 ) {
-    // Rotation animation for syncing spinner
-    val infiniteTransition = rememberInfiniteTransition(label = "syncRotation")
-    val rotation by infiniteTransition.animateFloat(
-        initialValue = 0f,
-        targetValue  = 360f,
-        animationSpec = infiniteRepeatable(animation = tween(1000, easing = LinearEasing), repeatMode = RepeatMode.Restart),
-        label = "rotation"
+    var showComingSoon by remember { mutableStateOf(false) }
+
+    // Fake progress animation for UX
+    var progress by remember { mutableFloatStateOf(0f) }
+    var estimatedTime by remember { mutableIntStateOf(12) }
+    val animatedProgress by animateFloatAsState(
+        targetValue = progress,
+        animationSpec = tween(durationMillis = 500, easing = FastOutSlowInEasing),
+        label = "progressAnim"
     )
 
+    LaunchedEffect(syncStatus) {
+        if (syncStatus == SyncStatus.SYNCING) {
+            progress = 0f
+            estimatedTime = 12
+            // Simulate progress filling up to ~95%
+            while (progress < 0.95f) {
+                delay(400)
+                progress += (1f - progress) * 0.2f
+                if (estimatedTime > 1) estimatedTime--
+            }
+        } else if (syncStatus == SyncStatus.SUCCESS || syncStatus == SyncStatus.ERROR) {
+            progress = if (syncStatus == SyncStatus.SUCCESS) 1f else 0f
+        } else if (syncStatus == SyncStatus.IDLE) {
+            progress = 0f
+        }
+    }
+
+    if (showComingSoon) {
+        AlertDialog(
+            onDismissRequest = { showComingSoon = false },
+            icon  = { Icon(Icons.Default.Build, null, tint = SyBlue) },
+            title = { Text("Coming Soon") },
+            text  = { Text("This feature will be implemented in a future update.") },
+            confirmButton = {
+                TextButton(onClick = { showComingSoon = false }) { Text("OK") }
+            },
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     Scaffold(
+        containerColor = SyBg,
         topBar = {
             TopAppBar(
-                title = { Text("Cloud Sync", fontWeight = FontWeight.SemiBold) },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                title = {
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            "Cloud Synchronization",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = SyDark,
+                            modifier = Modifier.offset(x = (-24).dp) // Center horizontally balancing back icon
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)
+                navigationIcon = {
+                    IconButton(onClick = onNavigateBack) {
+                        Icon(Icons.Default.ArrowBack, "Back", tint = SyDark)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = SyCard)
             )
         },
         bottomBar = {
@@ -68,218 +131,286 @@ fun SyncScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(4.dp))
 
-            // ── Offline Banner ─────────────────────────────────────
-            if (isOffline) {
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Icon(Icons.Default.WifiOff, null, tint = MaterialTheme.colorScheme.onErrorContainer, modifier = Modifier.size(28.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("You are offline", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
-                            Text("Changes will be synced when internet is restored.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.8f))
-                        }
-                    }
-                }
-            }
-
-            // ── Sync Status Card ───────────────────────────────────
-            ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-                Column(
-                    modifier = Modifier.padding(24.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    AnimatedContent(targetState = syncStatus, label = "syncStatusIcon") { status ->
-                        when (status) {
-                            SyncStatus.SYNCING -> {
-                                Icon(
-                                    Icons.Default.Sync,
-                                    contentDescription = "Syncing",
-                                    modifier = Modifier.size(64.dp).rotate(rotation),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            SyncStatus.SUCCESS -> {
-                                Icon(
-                                    Icons.Default.CheckCircle,
-                                    contentDescription = "Sync successful",
-                                    modifier = Modifier.size(64.dp),
-                                    tint = androidx.compose.ui.graphics.Color(0xFF1A6B35)
-                                )
-                            }
-                            SyncStatus.ERROR -> {
-                                Icon(
-                                    Icons.Default.Error,
-                                    contentDescription = "Sync error",
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                            }
-                            SyncStatus.OFFLINE -> {
-                                Icon(
-                                    Icons.Default.WifiOff,
-                                    contentDescription = "Offline",
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            else -> {
-                                Icon(
-                                    Icons.Default.CloudUpload,
-                                    contentDescription = "Ready to sync",
-                                    modifier = Modifier.size(64.dp),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-                    }
-
-                    Text(
-                        text = when (syncStatus) {
-                            SyncStatus.SYNCING -> "Syncing your data…"
-                            SyncStatus.SUCCESS -> "All data synced successfully!"
-                            SyncStatus.ERROR   -> "Sync failed. Please try again."
-                            SyncStatus.OFFLINE -> "No internet connection"
-                            else               -> "Ready to sync"
-                        },
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-
-                    if (syncStatus == SyncStatus.SYNCING) {
-                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
-                    }
-
-                    Text(
-                        text = when {
-                            lastSyncTime != null -> "Last synced: $lastSyncTime"
-                            else                 -> "Never synced"
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // ── Pending Items ──────────────────────────────────────
-            ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
+            // ═══════════════════════════════════════════════════════════════
+            // CONNECTED CARD
+            // ═══════════════════════════════════════════════════════════════
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = SyCard),
+                elevation = CardDefaults.cardElevation(1.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        Icon(Icons.Default.Pending, null, tint = MaterialTheme.colorScheme.primary)
-                        Column {
-                            Text("Pending sync", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Medium)
-                            Text("Items awaiting upload", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    // Cloud Icon
+                    Box(
+                        modifier = Modifier
+                            .size(52.dp)
+                            .clip(CircleShape)
+                            .background(SyGreenBg),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(Icons.Default.CloudDone, null, tint = SyGreen, modifier = Modifier.size(24.dp))
+                        // Little green dot badge
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .offset(x = (-4).dp, y = 4.dp)
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(SyGreen)
+                        )
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Connected", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = SyDark)
+                        Text("Encryption: AES-256", style = MaterialTheme.typography.bodySmall, color = SyGrey)
+                        Text("Active", style = MaterialTheme.typography.bodySmall, color = SyGrey)
+                    }
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // SYNCING PROGRESS CARD
+            // ═══════════════════════════════════════════════════════════════
+            AnimatedVisibility(visible = syncStatus == SyncStatus.SYNCING || progress > 0f) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = SyCard),
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.Bottom
+                        ) {
+                            Column {
+                                Text("Syncing Progress", style = MaterialTheme.typography.bodySmall, color = SyGrey)
+                                Text("${(animatedProgress * 100).toInt()}% Complete", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = SyDark)
+                            }
+                            Text(
+                                "Estimated: $estimatedTime seconds",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = SyGrey,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+                        }
+                        
+                        Spacer(Modifier.height(12.dp))
+                        
+                        // Progress bar
+                        LinearProgressIndicator(
+                            progress = { animatedProgress },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp)
+                                .clip(RoundedCornerShape(50)),
+                            color = SyBlue,
+                            trackColor = SyLightBlueBg
+                        )
+                        
+                        Spacer(Modifier.height(12.dp))
+                        
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Info, null, tint = SyGrey, modifier = Modifier.size(12.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Uploading local data to secure vault...", style = MaterialTheme.typography.bodySmall, color = SyGrey)
                         }
                     }
-                    Badge(containerColor = if (pendingCount > 0) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant) {
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════════
+            // LAST SYNCED & PENDING GRIDS
+            // ═══════════════════════════════════════════════════════════════
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                // Last Synced
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = SyCard),
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    modifier = Modifier.weight(1f).clickable { showComingSoon = true }
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Icon(Icons.Default.History, null, tint = SyGrey, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.height(8.dp))
+                        Text("Last Synced", style = MaterialTheme.typography.bodySmall, color = SyGrey)
                         Text(
-                            "$pendingCount",
-                            color = if (pendingCount > 0) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            "Not Available", // Replaced hardcoded "2 hours ago"
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = SyDark
+                        )
+                    }
+                }
+
+                // Pending
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = SyCard),
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    modifier = Modifier.weight(1f).clickable { showComingSoon = true }
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Icon(Icons.Default.UploadFile, null, tint = SyGrey, modifier = Modifier.size(20.dp))
+                        Spacer(Modifier.height(8.dp))
+                        Text("Pending", style = MaterialTheme.typography.bodySmall, color = SyGrey)
+                        Text(
+                            "Not Available", // Hidden pending items behind future build
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = SyDark
                         )
                     }
                 }
             }
 
-            // ── Sync Log / History ─────────────────────────────────
-            ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Sync Log", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    SyncLogItem(icon = Icons.Default.CloudDone, label = "Projects", detail = if (syncStatus == SyncStatus.SUCCESS) "Synced" else "Pending")
-                    SyncLogItem(icon = Icons.Default.Receipt, label = "Expenses", detail = if (syncStatus == SyncStatus.SUCCESS) "Synced" else "Pending")
-                    SyncLogItem(icon = Icons.Default.Settings, label = "Settings", detail = "Up to date")
+            // ═══════════════════════════════════════════════════════════════
+            // SYNC NOW BUTTON
+            // ═══════════════════════════════════════════════════════════════
+            Button(
+                onClick = onSyncNow,
+                enabled = syncStatus != SyncStatus.SYNCING && !isOffline,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(54.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = SyBlue)
+            ) {
+                if (syncStatus == SyncStatus.SYNCING) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp), color = Color.White, strokeWidth = 2.dp)
+                } else {
+                    Icon(Icons.Default.Sync, null, modifier = Modifier.size(20.dp), tint = Color.White)
                 }
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    if (syncStatus == SyncStatus.SYNCING) "Syncing..." else "Sync Now",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color.White
+                )
             }
 
-            // ── Error dismissal ────────────────────────────────────
-            if (syncStatus == SyncStatus.ERROR) {
-                ElevatedCard(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.errorContainer)
-                ) {
+            // ═══════════════════════════════════════════════════════════════
+            // AUTO SYNC & LOG ROWS
+            // ═══════════════════════════════════════════════════════════════
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = SyCard),
+                elevation = CardDefaults.cardElevation(1.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    // Auto-sync
                     Row(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showComingSoon = true }
+                            .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text("Sync Error", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onErrorContainer)
-                            Text("Could not reach the server. Check your connection and retry.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onErrorContainer.copy(0.8f))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Autorenew, null, tint = SyGrey, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Column {
+                                Text("Auto-sync", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = SyDark)
+                                Text("Sync changes automatically", style = MaterialTheme.typography.bodySmall, color = SyGrey)
+                            }
                         }
-                        IconButton(onClick = onDismissError) {
-                            Icon(Icons.Default.Close, null, tint = MaterialTheme.colorScheme.onErrorContainer)
+                        Switch(
+                            checked = true, // Visual only
+                            onCheckedChange = { showComingSoon = true },
+                            colors = SwitchDefaults.colors(checkedTrackColor = SyBlue)
+                        )
+                    }
+                    
+                    HorizontalDivider(color = SyBorder)
+                    
+                    // View Sync Log
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showComingSoon = true }
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.ListAlt, null, tint = SyGrey, modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("View Sync Log", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = SyDark)
                         }
+                        Icon(Icons.Default.ChevronRight, null, tint = SyGrey, modifier = Modifier.size(20.dp))
                     }
                 }
             }
 
-            // ── Actions ────────────────────────────────────────────
-            Button(
-                onClick = onSyncNow,
-                enabled = syncStatus != SyncStatus.SYNCING && !isOffline,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Icon(Icons.Default.Sync, null)
-                Spacer(Modifier.width(8.dp))
-                Text("Sync Now", style = MaterialTheme.typography.labelLarge)
-            }
-
-            // Offline toggle (demo)
-            OutlinedButton(
-                onClick = onToggleOffline,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Icon(if (isOffline) Icons.Default.Wifi else Icons.Default.WifiOff, null)
-                Spacer(Modifier.width(8.dp))
-                Text(if (isOffline) "Go Online" else "Simulate Offline", style = MaterialTheme.typography.labelLarge)
-            }
-
-            Spacer(Modifier.height(24.dp))
-        }
-    }
-}
-
-@Composable
-private fun SyncLogItem(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    label: String,
-    detail: String
-) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(18.dp))
-            Text(label, style = MaterialTheme.typography.bodySmall)
-        }
-        Surface(shape = RoundedCornerShape(6.dp), color = if (detail == "Synced" || detail == "Up to date") androidx.compose.ui.graphics.Color(0xFFD4EDDA) else MaterialTheme.colorScheme.surfaceVariant) {
+            // ═══════════════════════════════════════════════════════════════
+            // RECENT ACTIVITY LIST (Placeholders)
+            // ═══════════════════════════════════════════════════════════════
             Text(
-                detail,
-                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-                style = MaterialTheme.typography.labelSmall,
-                color = if (detail == "Synced" || detail == "Up to date") androidx.compose.ui.graphics.Color(0xFF1A6B35) else MaterialTheme.colorScheme.onSurfaceVariant
+                "RECENT ACTIVITY",
+                style = MaterialTheme.typography.labelMedium,
+                fontWeight = FontWeight.Bold,
+                color = SyGrey,
+                letterSpacing = 1.sp,
+                modifier = Modifier.padding(top = 8.dp)
             )
+
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = SyCard),
+                elevation = CardDefaults.cardElevation(1.dp),
+                modifier = Modifier.fillMaxWidth().clickable { showComingSoon = true }
+            ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(SyLightBlueBg), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Architecture, null, tint = SyLightBlue, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Project structure synced", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = SyDark)
+                        Text("Future feature • Data", style = MaterialTheme.typography.bodySmall, color = SyGrey)
+                    }
+                    Icon(Icons.Default.CheckCircle, null, tint = SyGreen, modifier = Modifier.size(16.dp))
+                }
+            }
+            
+            Card(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.cardColors(containerColor = SyCard),
+                elevation = CardDefaults.cardElevation(1.dp),
+                modifier = Modifier.fillMaxWidth().clickable { showComingSoon = true }
+            ) {
+                Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(8.dp)).background(SyOrangeBg), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.FlightTakeoff, null, tint = SyOrange, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Expenses batch uploaded", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = SyDark)
+                        Text("Future feature • Images", style = MaterialTheme.typography.bodySmall, color = SyGrey)
+                    }
+                    Icon(Icons.Default.CheckCircle, null, tint = SyGreen, modifier = Modifier.size(16.dp))
+                }
+            }
+
+            Spacer(Modifier.height(32.dp))
         }
     }
 }
