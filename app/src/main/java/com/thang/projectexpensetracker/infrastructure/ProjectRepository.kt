@@ -9,12 +9,14 @@ import kotlinx.coroutines.flow.combine
 
 /**
  * Bridge between Room (local) and Firestore (cloud).
- * Handles uploading local data and observing changes for auto-sync.
+ * Provides both full-sync and individual CRUD mirror operations.
  */
 class ProjectRepository(
     private val projectDao: ProjectDao,
     private val expenseDao: ExpenseDao
 ) {
+
+    // ── Full sync (manual "Sync Now" + auto-sync) ──────────────────────────
 
     /** Upload all local projects and expenses to Firestore. Returns true if both succeed. */
     suspend fun syncAll(): Boolean {
@@ -24,6 +26,31 @@ class ProjectRepository(
         val expOk  = FirebaseHelper.uploadExpenses(expenses)
         return projOk && expOk
     }
+
+    // ── Individual project CRUD → Firestore ────────────────────────────────
+
+    /** Mirror a newly-inserted or updated project to Firestore. */
+    suspend fun syncUpsertProject(project: ProjectEntity): Boolean =
+        FirebaseHelper.upsertProject(project)
+
+    /** Mirror a project deletion to Firestore (also removes its expenses). */
+    suspend fun syncDeleteProject(project: ProjectEntity): Boolean {
+        val projOk = FirebaseHelper.deleteProject(project.projectCode)
+        val expOk  = FirebaseHelper.deleteExpensesByProject(project.id)
+        return projOk && expOk
+    }
+
+    // ── Individual expense CRUD → Firestore ────────────────────────────────
+
+    /** Mirror a newly-inserted or updated expense to Firestore. */
+    suspend fun syncUpsertExpense(expense: ExpenseEntity): Boolean =
+        FirebaseHelper.upsertExpense(expense)
+
+    /** Mirror an expense deletion to Firestore. */
+    suspend fun syncDeleteExpense(expense: ExpenseEntity): Boolean =
+        FirebaseHelper.deleteExpense(expense.projectId, expense.expenseId)
+
+    // ── Observables (auto-sync & pending count) ────────────────────────────
 
     /** Observable stream that emits whenever any local data changes (for auto-sync). */
     fun observeAllData(): Flow<Pair<List<ProjectEntity>, List<ExpenseEntity>>> =

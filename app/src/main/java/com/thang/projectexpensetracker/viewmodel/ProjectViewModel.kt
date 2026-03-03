@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.thang.projectexpensetracker.data.AppDatabase
 import com.thang.projectexpensetracker.data.entity.ProjectEntity
+import com.thang.projectexpensetracker.infrastructure.ProjectRepository
 import com.thang.projectexpensetracker.util.DateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +25,9 @@ import kotlinx.coroutines.launch
  */
 class ProjectViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val projectDao = AppDatabase.getDatabase(application).projectDao()
+    private val db = AppDatabase.getDatabase(application)
+    private val projectDao = db.projectDao()
+    private val repository = ProjectRepository(db.projectDao(), db.expenseDao())
 
     // ── Project list ───────────────────────────────────────────────────────
     private val _allProjects = MutableStateFlow<List<ProjectEntity>>(emptyList())
@@ -89,10 +92,16 @@ class ProjectViewModel(application: Application) : AndroidViewModel(application)
 
     // ── CRUD ───────────────────────────────────────────────────────────────
     fun deleteProject(project: ProjectEntity) {
-        viewModelScope.launch { projectDao.deleteProject(project) }
+        viewModelScope.launch {
+            projectDao.deleteProject(project)
+            repository.syncDeleteProject(project)
+        }
     }
 
     fun updateProject(project: ProjectEntity) {
-        viewModelScope.launch { projectDao.updateProject(project) }
+        viewModelScope.launch {
+            projectDao.updateProject(project)
+            repository.syncUpsertProject(project)
+        }
     }
 }

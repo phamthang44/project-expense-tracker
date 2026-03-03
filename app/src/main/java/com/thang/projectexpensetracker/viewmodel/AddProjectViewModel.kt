@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.thang.projectexpensetracker.data.AppDatabase
 import com.thang.projectexpensetracker.data.entity.ProjectEntity
+import com.thang.projectexpensetracker.infrastructure.ProjectRepository
 import com.thang.projectexpensetracker.model.ProjectFormState
 import com.thang.projectexpensetracker.util.DateUtils
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,7 +24,9 @@ import kotlinx.coroutines.launch
  */
 class AddProjectViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val projectDao = AppDatabase.getDatabase(application).projectDao()
+    private val db = AppDatabase.getDatabase(application)
+    private val projectDao = db.projectDao()
+    private val repository = ProjectRepository(db.projectDao(), db.expenseDao())
 
     // ── Form State ─────────────────────────────────────────────────────────
     private val _projectFormState = MutableStateFlow(ProjectFormState())
@@ -137,6 +140,7 @@ class AddProjectViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             _draftProject.value?.let {
                 projectDao.insertProject(it)
+                repository.syncUpsertProject(it)
                 _draftProject.value    = null
                 _draftIsEditMode.value = false
             }
@@ -147,6 +151,7 @@ class AddProjectViewModel(application: Application) : AndroidViewModel(applicati
         viewModelScope.launch {
             _draftProject.value?.let {
                 projectDao.updateProject(it)
+                repository.syncUpsertProject(it)
                 _draftProject.value    = null
                 _draftIsEditMode.value = false
             }

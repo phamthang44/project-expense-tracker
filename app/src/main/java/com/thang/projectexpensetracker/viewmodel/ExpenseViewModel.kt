@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.thang.projectexpensetracker.data.AppDatabase
 import com.thang.projectexpensetracker.data.entity.ExpenseEntity
+import com.thang.projectexpensetracker.infrastructure.ProjectRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -20,7 +21,9 @@ import kotlinx.coroutines.launch
  */
 class ExpenseViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val expenseDao = AppDatabase.getDatabase(application).expenseDao()
+    private val db = AppDatabase.getDatabase(application)
+    private val expenseDao = db.expenseDao()
+    private val repository = ProjectRepository(db.projectDao(), db.expenseDao())
 
     // ── Real-time totals (used by AdminDashboardScreen budget bars) ────────
     val expenseTotalsMap: Flow<Map<Long, Double>> = expenseDao.getTotalsByProject()
@@ -36,14 +39,23 @@ class ExpenseViewModel(application: Application) : AndroidViewModel(application)
     // ── Write operations ───────────────────────────────────────────────────
 
     fun addExpense(expense: ExpenseEntity) {
-        viewModelScope.launch { expenseDao.insertExpense(expense) }
+        viewModelScope.launch {
+            expenseDao.insertExpense(expense)
+            repository.syncUpsertExpense(expense)
+        }
     }
 
     fun deleteExpense(expense: ExpenseEntity) {
-        viewModelScope.launch { expenseDao.deleteExpense(expense) }
+        viewModelScope.launch {
+            expenseDao.deleteExpense(expense)
+            repository.syncDeleteExpense(expense)
+        }
     }
 
     fun updateExpense(expense: ExpenseEntity) {
-        viewModelScope.launch { expenseDao.updateExpense(expense) }
+        viewModelScope.launch {
+            expenseDao.updateExpense(expense)
+            repository.syncUpsertExpense(expense)
+        }
     }
 }

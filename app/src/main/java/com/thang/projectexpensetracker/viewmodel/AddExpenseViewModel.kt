@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.thang.projectexpensetracker.data.AppDatabase
 import com.thang.projectexpensetracker.data.entity.ExpenseEntity
+import com.thang.projectexpensetracker.infrastructure.ProjectRepository
 import com.thang.projectexpensetracker.model.ExpenseFormState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -21,7 +22,9 @@ import kotlinx.coroutines.launch
  */
 class AddExpenseViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val expenseDao = AppDatabase.getDatabase(application).expenseDao()
+    private val db = AppDatabase.getDatabase(application)
+    private val expenseDao = db.expenseDao()
+    private val repository = ProjectRepository(db.projectDao(), db.expenseDao())
 
     // ── Form State ─────────────────────────────────────────────────────────
     private val _expenseFormState = MutableStateFlow(ExpenseFormState())
@@ -117,8 +120,13 @@ class AddExpenseViewModel(application: Application) : AndroidViewModel(applicati
     fun saveDraftExpense() {
         viewModelScope.launch {
             _draftExpense.value?.let {
-                if (_draftIsEditMode.value) expenseDao.updateExpense(it)
-                else                        expenseDao.insertExpense(it)
+                if (_draftIsEditMode.value) {
+                    expenseDao.updateExpense(it)
+                    repository.syncUpsertExpense(it)
+                } else {
+                    expenseDao.insertExpense(it)
+                    repository.syncUpsertExpense(it)
+                }
                 _draftExpense.value    = null
                 _draftIsEditMode.value = false
             }
