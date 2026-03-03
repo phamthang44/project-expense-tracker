@@ -2,6 +2,16 @@ package com.thang.projectexpensetracker.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// ── Status dot color helper ───────────────────────────────────────────────────
+// Single Responsibility: maps a project-status string to its indicator Color.
+// Lives here so any screen can import it without referencing a ViewModel or screen.
+fun statusColor(status: String): Color = when (status) {
+    "Active"    -> Color(0xFF16A34A)
+    "Completed" -> Color(0xFF2563EB)  // VividBlue — same hex, avoids forward-reference
+    "On Hold"   -> Color(0xFFF59E0B)
+    else        -> Color(0xFFDC2626)  // Cancelled / unknown
+}
+
 // ── Primary Palette: Vivid Blue ───────────────────────────────────────
 val md_theme_light_primary            = Color(0xFF2563EB)   // vivid blue
 val md_theme_light_onPrimary          = Color(0xFFFFFFFF)
@@ -129,3 +139,45 @@ val Pink80 = Color(0xFFEFB8C8)
 val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
+
+// ── Form & Input Colors ───────────────────────────────────────────────────
+val AddPageBg   = Color(0xFFF2F4F7)
+val AddCardBg   = Color(0xFFFFFFFF)
+val VividBlue   = Color(0xFF2563EB)
+val FieldBg     = Color(0xFFF1F3F6)
+val LabelColor  = Color(0xFF374151)
+val HintColor   = Color(0xFF9CA3AF)
+val ErrorRed    = Color(0xFFDC2626)
+
+// ── Dashboard / Budget Progress Colors ───────────────────────────────────
+// ProgressBlue  → reuse VividBlue
+// ProgressRed   → reuse ErrorRed
+val ProgressOrange = Color(0xFFF59E0B)   // amber-orange (on hold / high usage)
+val ProgressTrack  = Color(0xFFE5E7EB)   // light grey track background
+
+// ── Input Field Tokens ────────────────────────────────────────────────────
+val InputFieldBg  = Color(0xFFF9FAFB)   // outlined text field container (unfocused)
+val InputBorder   = Color(0xFFE5E7EB)   // outlined text field border (unfocused)
+val ActiveTintBg  = Color(0xFFEFF6FF)   // selected toggle button background
+
+// Maps budget fraction + project status to the correct progress bar color.
+// Single Responsibility: pure color-mapping logic, no UI dependency.
+fun budgetProgressColor(fraction: Float, status: String): Color = when {
+    fraction >= 0.90f -> ErrorRed
+    fraction >= 0.70f -> ProgressOrange
+    else -> when (status.lowercase()) {
+        "completed"          -> VividBlue
+        "on hold", "pending" -> ProgressOrange
+        else                 -> VividBlue
+    }
+}
+
+// ── Avatar Stack Colors ───────────────────────────────────────────────────
+// Accent fills for the stacked-avatar circles on project cards.
+val AvatarColors = listOf(
+    Color(0xFFBFDBFE), // light blue
+    Color(0xFFBBF7D0), // light green
+    Color(0xFFFDE68A), // light yellow
+    Color(0xFFFBCFE8), // light pink
+    Color(0xFFDDD6FE)  // light purple
+)

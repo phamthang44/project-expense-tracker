@@ -23,7 +23,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.thang.projectexpensetracker.viewmodel.SyncStatus
+import com.thang.projectexpensetracker.model.SyncStatus
 import kotlinx.coroutines.delay
 
 // ─── Token Colors for Sync Screen ────────────────────────────────────────────

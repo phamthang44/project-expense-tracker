@@ -20,17 +20,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.thang.projectexpensetracker.data.entity.ProjectEntity
-import java.text.NumberFormat
-import java.util.Locale
-
-// ─── Design tokens ────────────────────────────────────────────────────────────
-private val ConfPageBg   = Color(0xFFF2F4F7)
-private val ConfCardBg   = Color(0xFFFFFFFF)
-private val VividBlue    = Color(0xFF2563EB)
-private val LightBlue    = Color(0xFFDBEAFE)
-private val LabelGrey    = Color(0xFF6B7280)
-private val ValueColor   = Color(0xFF111827)
-private val DividerColor = Color(0xFFF3F4F6)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -81,13 +70,13 @@ fun ConfirmationScreen(
                     modifier = Modifier
                         .size(56.dp)
                         .clip(RoundedCornerShape(50))
-                        .background(LightBlue),
+                        .background(ConfLightBlue),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         Icons.Default.CheckCircle,
                         contentDescription = null,
-                        tint = VividBlue,
+                        tint = ConfVividBlue,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -96,13 +85,13 @@ fun ConfirmationScreen(
                     if (isEditMode) "Confirm Details" else "Confirm Details",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.ExtraBold,
-                    color = ValueColor
+                    color = ConfValueColor
                 )
                 Text(
                     if (isEditMode) "Please verify your changes before saving."
                     else "Please verify all project details are correct\nbefore saving.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = LabelGrey,
+                    color = ConfLabelGrey,
                     textAlign = TextAlign.Center,
                     lineHeight = 18.sp
                 )
@@ -115,17 +104,17 @@ fun ConfirmationScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(Icons.Default.FolderOpen, null, tint = VividBlue, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.FolderOpen, null, tint = ConfVividBlue, modifier = Modifier.size(16.dp))
                     Text(
                         "PROJECT DETAILS",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.ExtraBold,
-                        color = VividBlue,
+                        color = ConfVividBlue,
                         letterSpacing = 1.sp
                     )
                 }
 
-                HorizontalDivider(color = DividerColor, modifier = Modifier.padding(vertical = 4.dp))
+                HorizontalDivider(color = ConfDividerColor, modifier = Modifier.padding(vertical = 4.dp))
 
                 // Project Name + Status side-by-side
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -133,7 +122,7 @@ fun ConfirmationScreen(
                     ConfStatusBadge(status = project.status)
                 }
 
-                HorizontalDivider(color = DividerColor)
+                HorizontalDivider(color = ConfDividerColor)
 
                 // Project ID + Priority
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -141,29 +130,29 @@ fun ConfirmationScreen(
                     ReviewField(label = "Priority", value = project.priority, modifier = Modifier.weight(1f))
                 }
 
-                HorizontalDivider(color = DividerColor)
+                HorizontalDivider(color = ConfDividerColor)
 
                 // Manager + Budget
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     ReviewField(label = "Manager", value = project.manager, modifier = Modifier.weight(1f))
-                    ReviewField(label = "Budget", value = "\$${formatBudget(project.budget)}", modifier = Modifier.weight(1f))
+                    ReviewField(label = "Budget", value = "\$${confFormatBudget(project.budget)}", modifier = Modifier.weight(1f))
                 }
 
                 // Description (if filled)
                 if (project.description.isNotBlank()) {
-                    HorizontalDivider(color = DividerColor)
+                    HorizontalDivider(color = ConfDividerColor)
                     ReviewField(label = "Description", value = project.description)
                 }
 
                 // Client Info (if filled)
                 if (!project.clientInfo.isNullOrBlank()) {
-                    HorizontalDivider(color = DividerColor)
+                    HorizontalDivider(color = ConfDividerColor)
                     ReviewField(label = "Client / Department", value = project.clientInfo)
                 }
 
                 // Special Requirements (if filled)
                 if (!project.specialRequirements.isNullOrBlank()) {
-                    HorizontalDivider(color = DividerColor)
+                    HorizontalDivider(color = ConfDividerColor)
                     ReviewField(label = "Special Requirements", value = project.specialRequirements)
                 }
             }
@@ -174,17 +163,17 @@ fun ConfirmationScreen(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    Icon(Icons.Default.CalendarMonth, null, tint = VividBlue, modifier = Modifier.size(16.dp))
+                    Icon(Icons.Default.CalendarMonth, null, tint = ConfVividBlue, modifier = Modifier.size(16.dp))
                     Text(
                         "SCHEDULE",
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.ExtraBold,
-                        color = VividBlue,
+                        color = ConfVividBlue,
                         letterSpacing = 1.sp
                     )
                 }
 
-                HorizontalDivider(color = DividerColor, modifier = Modifier.padding(vertical = 4.dp))
+                HorizontalDivider(color = ConfDividerColor, modifier = Modifier.padding(vertical = 4.dp))
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     ReviewField(label = "Start Date", value = project.startDate, modifier = Modifier.weight(1f))
@@ -198,7 +187,7 @@ fun ConfirmationScreen(
                     .fillMaxWidth()
                     .shadow(4.dp, RoundedCornerShape(16.dp))
                     .clip(RoundedCornerShape(16.dp))
-                    .background(VividBlue)
+                    .background(ConfVividBlue)
                     .padding(horizontal = 20.dp, vertical = 18.dp)
             ) {
                 Row(
@@ -216,7 +205,7 @@ fun ConfirmationScreen(
                         )
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "\$${formatBudget(project.budget)}",
+                            "\$${confFormatBudget(project.budget)}",
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White
@@ -246,7 +235,7 @@ fun ConfirmationScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(16.dp))
-                    .background(LightBlue)
+                    .background(ConfLightBlue)
                     .padding(16.dp)
             ) {
                 Row(
@@ -256,7 +245,7 @@ fun ConfirmationScreen(
                     Icon(
                         Icons.Default.Info,
                         contentDescription = null,
-                        tint = VividBlue,
+                        tint = ConfVividBlue,
                         modifier = Modifier.size(18.dp).padding(top = 1.dp)
                     )
                     Text(
@@ -275,7 +264,7 @@ fun ConfirmationScreen(
                     .fillMaxWidth()
                     .height(54.dp),
                 shape = RoundedCornerShape(14.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = VividBlue)
+                colors = ButtonDefaults.buttonColors(containerColor = ConfVividBlue)
             ) {
                 Icon(
                     Icons.Default.CheckCircle,
@@ -315,75 +304,3 @@ fun ConfirmationScreen(
         }
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// White card wrapper
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun ReviewCard(content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(2.dp, RoundedCornerShape(16.dp)),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = ConfCardBg),
-        elevation = CardDefaults.cardElevation(0.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-            content = content
-        )
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Single label + value pair
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun ReviewField(
-    label: String,
-    value: String,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = LabelGrey)
-        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold, color = ValueColor)
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Status badge — pill matching design style
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun ConfStatusBadge(status: String) {
-    val (bg, fg) = when (status) {
-        "Active"    -> Color(0xFFDCFCE7) to Color(0xFF16A34A)
-        "On Hold"   -> Color(0xFFFEF3C7) to Color(0xFFD97706)
-        "Completed" -> Color(0xFFDBEAFE) to Color(0xFF2563EB)
-        else        -> Color(0xFFFEE2E2) to Color(0xFFDC2626)
-    }
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .background(bg)
-            .padding(horizontal = 12.dp, vertical = 4.dp)
-    ) {
-        Text(
-            status.uppercase(),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = fg,
-            letterSpacing = 0.5.sp
-        )
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Budget formatter
-// ─────────────────────────────────────────────────────────────────────────────
-private fun formatBudget(amount: Double): String =
-    NumberFormat.getNumberInstance(Locale.US).apply {
-        minimumFractionDigits = 2
-        maximumFractionDigits = 2
-    }.format(amount)

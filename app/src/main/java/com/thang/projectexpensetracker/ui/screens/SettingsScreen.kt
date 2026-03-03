@@ -18,21 +18,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
-// ─── Design Tokens ───────────────────────────────────────────────────────────
-private val SetBg        = Color(0xFFF2F4F7)
-private val SetCard      = Color(0xFFFFFFFF)
-private val SetBlue      = Color(0xFF2563EB)
-private val SetDark      = Color(0xFF111827)
-private val SetGrey      = Color(0xFF6B7280)
-private val SetBorder    = Color(0xFFE5E7EB)
-private val SetLightBlue = Color(0xFFEFF6FF)
-private val SetSectionBlue = Color(0xFF3B82F6)
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Settings Screen
@@ -223,14 +212,14 @@ fun SettingsScreen(
                 modifier  = Modifier.fillMaxWidth()
             ) {
                 Column {
-                    ToggleRow(
+                    SettingsToggleRow(
                         title    = "Sync Alerts",
                         subtitle = "Notify when cloud data updates",
                         checked  = syncAlerts,
                         onToggle = { syncAlerts = it }
                     )
                     HorizontalDivider(color = SetBorder, modifier = Modifier.padding(horizontal = 16.dp))
-                    ToggleRow(
+                    SettingsToggleRow(
                         title    = "Budget Reminders",
                         subtitle = "Alert when nearing category limits",
                         checked  = budgetReminders,
@@ -447,145 +436,6 @@ fun SettingsScreen(
             }
 
             Spacer(Modifier.height(16.dp))
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Section label (blue uppercase text)
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text,
-        style      = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.Bold,
-        color      = SetSectionBlue,
-        letterSpacing = 0.8.sp,
-        modifier   = Modifier.padding(start = 4.dp)
-    )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Theme option row (radio + icon)
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun ThemeOption(
-    title: String,
-    subtitle: String,
-    icon: ImageVector,
-    isSelected: Boolean,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier          = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        RadioButton(
-            selected = isSelected,
-            onClick  = onClick,
-            colors   = RadioButtonDefaults.colors(
-                selectedColor   = SetBlue,
-                unselectedColor = SetGrey
-            )
-        )
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                title,
-                style      = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color      = SetDark
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = SetGrey
-            )
-        }
-        Icon(icon, null, tint = if (isSelected) SetBlue else SetGrey, modifier = Modifier.size(22.dp))
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Toggle/switch row
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun ToggleRow(
-    title: String,
-    subtitle: String,
-    checked: Boolean,
-    onToggle: (Boolean) -> Unit
-) {
-    Row(
-        modifier          = Modifier
-            .fillMaxWidth()
-            .clickable { onToggle(!checked) }
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                title,
-                style      = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color      = SetDark
-            )
-            Text(
-                subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = SetGrey
-            )
-        }
-        Switch(
-            checked = checked,
-            onCheckedChange = onToggle,
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Color.White,
-                checkedTrackColor = SetBlue,
-                uncheckedThumbColor = Color.White,
-                uncheckedTrackColor = SetBorder
-            )
-        )
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Action row (icon + title + trailing text or arrow)
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun ActionRow(
-    icon: ImageVector,
-    title: String,
-    trailing: String? = null,
-    showArrow: Boolean = false,
-    onClick: () -> Unit
-) {
-    Row(
-        modifier          = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(14.dp)
-    ) {
-        Icon(icon, null, tint = SetGrey, modifier = Modifier.size(22.dp))
-        Text(
-            title,
-            style      = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.Medium,
-            color      = SetDark,
-            modifier   = Modifier.weight(1f)
-        )
-        if (trailing != null) {
-            Text(trailing, style = MaterialTheme.typography.bodySmall, color = SetGrey)
-        }
-        if (showArrow) {
-            Icon(Icons.Default.ChevronRight, null, tint = SetGrey, modifier = Modifier.size(20.dp))
         }
     }
 }

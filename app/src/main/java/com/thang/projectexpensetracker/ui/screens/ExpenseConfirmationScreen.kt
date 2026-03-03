@@ -17,8 +17,6 @@ import com.thang.projectexpensetracker.data.entity.ExpenseEntity
 import com.thang.projectexpensetracker.ui.components.FormSectionHeader
 import com.thang.projectexpensetracker.ui.components.InfoRow
 import com.thang.projectexpensetracker.ui.components.PaymentStatusTag
-import java.text.NumberFormat
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,6 +142,3 @@ fun ExpenseConfirmationScreen(
         }
     }
 }
-
-private fun formatAmount(amount: Double): String =
-    NumberFormat.getNumberInstance(Locale.US).apply { minimumFractionDigits = 2; maximumFractionDigits = 2 }.format(amount)

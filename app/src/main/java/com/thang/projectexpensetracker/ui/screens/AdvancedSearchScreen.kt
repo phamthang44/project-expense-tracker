@@ -6,15 +6,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -23,34 +19,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.thang.projectexpensetracker.data.entity.ProjectEntity
-import com.thang.projectexpensetracker.ui.components.StatusTag
-import java.text.NumberFormat
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
+import com.thang.projectexpensetracker.ui.theme.*
+import com.thang.projectexpensetracker.util.DateUtils
 
-// ─── Design tokens (shared with AdminDashboardScreen) ────────────────────────
-private val SearchPageBg   = Color(0xFFF2F4F7)
-private val SearchCardBg   = Color(0xFFFFFFFF)
-private val ChipSelected   = Color(0xFF2563EB)          // vivid blue — "Active" chip
-private val ChipSelectedText = Color(0xFFFFFFFF)
-private val ChipUnselected = Color(0xFFF1F3F6)
-private val ChipUnselectedText = Color(0xFF374151)
-private val InputBg        = Color(0xFFF1F3F6)
-private val ApplyBlue      = Color(0xFF2563EB)
-private val LabelGray      = Color(0xFF374151)
-
-private val statusOptions = listOf("Active", "On Hold", "Completed", "Cancelled")
 // Owners list used in the dropdown — pulled at runtime from project managers; here we
 // keep a static "All Owners" sentinel and build the real list from the projects passed in.
 private const val ALL_OWNERS = "All Owners"
@@ -87,9 +62,6 @@ fun AdvancedSearchScreen(
     val startPickerState = rememberDatePickerState()
     val endPickerState   = rememberDatePickerState()
 
-    // Owner dropdown (inside the sheet)
-    var ownerDropdownExpanded by remember { mutableStateOf(false) }
-
     // Derive owner list from current results + "All Owners" sentinel
     val ownerList = remember(results) {
         listOf(ALL_OWNERS) + results.map { it.manager }.distinct().sorted()
@@ -122,7 +94,7 @@ fun AdvancedSearchScreen(
             onDismissRequest = { showStartPicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    startPickerState.selectedDateMillis?.let { startAfterStr = millisToDisplayAdv(it) }
+                    startPickerState.selectedDateMillis?.let { startAfterStr = DateUtils.millisToSearchDisplayDate(it) }
                     showStartPicker = false
                 }) { Text("OK") }
             },
@@ -134,7 +106,7 @@ fun AdvancedSearchScreen(
             onDismissRequest = { showEndPicker = false },
             confirmButton = {
                 TextButton(onClick = {
-                    endPickerState.selectedDateMillis?.let { endBeforeStr = millisToDisplayAdv(it) }
+                    endPickerState.selectedDateMillis?.let { endBeforeStr = DateUtils.millisToSearchDisplayDate(it) }
                     showEndPicker = false
                 }) { Text("OK") }
             },
@@ -146,196 +118,28 @@ fun AdvancedSearchScreen(
     // BOTTOM SHEET — Advanced Filter Panel
     // ─────────────────────────────────────────────────────────────────────────
     if (showSheet) {
-        ModalBottomSheet(
-            onDismissRequest = { showSheet = false },
-            sheetState = sheetState,
-            containerColor = SearchCardBg,
-            shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-            dragHandle = {
-                // Drag handle pill
-                Box(
-                    modifier = Modifier
-                        .padding(top = 12.dp, bottom = 4.dp)
-                        .width(40.dp)
-                        .height(4.dp)
-                        .clip(RoundedCornerShape(50))
-                        .background(Color(0xFFD1D5DB))
-                )
-            }
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp)
-                    .padding(bottom = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
-            ) {
-                // ── Sheet header: title + Reset ───────────────────────────────
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        "Advanced Search",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF111827)
-                    )
-                    TextButton(onClick = { doReset(); showSheet = false }) {
-                        Text(
-                            "Reset Filters",
-                            color = ChipSelected,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp
-                        )
-                    }
-                }
-
-                // ── Date Range ────────────────────────────────────────────────
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "Date Range",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = LabelGray
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        // Start date picker button
-                        DatePickerButton(
-                            label = if (startAfterStr.isBlank()) "Oct 01, 2023" else startAfterStr,
-                            modifier = Modifier.weight(1f),
-                            onClick = { showStartPicker = true }
-                        )
-                        // End date picker button
-                        DatePickerButton(
-                            label = if (endBeforeStr.isBlank()) "Oct 31, 2023" else endBeforeStr,
-                            modifier = Modifier.weight(1f),
-                            onClick = { showEndPicker = true }
-                        )
-                    }
-                }
-
-                // ── Project Status chips ──────────────────────────────────────
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "Project Status",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = LabelGray
-                    )
-                    // Wrap chips in two rows to match design image
-                    val row1 = statusOptions.take(3)
-                    val row2 = statusOptions.drop(3)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            row1.forEach { status ->
-                                StatusChipButton(
-                                    label = status,
-                                    selected = selectedStatus == status,
-                                    onClick = {
-                                        selectedStatus = if (selectedStatus == status) null else status
-                                    }
-                                )
-                            }
-                        }
-                        if (row2.isNotEmpty()) {
-                            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                row2.forEach { status ->
-                                    StatusChipButton(
-                                        label = status,
-                                        selected = selectedStatus == status,
-                                        onClick = {
-                                            selectedStatus = if (selectedStatus == status) null else status
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // ── Project Owner dropdown ────────────────────────────────────
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text(
-                        "Project Owner",
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold,
-                        color = LabelGray
-                    )
-                    ExposedDropdownMenuBox(
-                        expanded = ownerDropdownExpanded,
-                        onExpandedChange = { ownerDropdownExpanded = it }
-                    ) {
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(),
-                            shape = RoundedCornerShape(12.dp),
-                            color = InputBg
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 14.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    selectedOwner,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = Color(0xFF374151)
-                                )
-                                Icon(
-                                    Icons.Default.KeyboardArrowDown,
-                                    contentDescription = null,
-                                    tint = Color(0xFF6B7280)
-                                )
-                            }
-                        }
-                        ExposedDropdownMenu(
-                            expanded = ownerDropdownExpanded,
-                            onDismissRequest = { ownerDropdownExpanded = false }
-                        ) {
-                            ownerList.forEach { owner ->
-                                DropdownMenuItem(
-                                    text = { Text(owner) },
-                                    onClick = { selectedOwner = owner; ownerDropdownExpanded = false }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // ── Apply Filters button ──────────────────────────────────────
-                Button(
-                    onClick = { doSearch(); showSheet = false },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(54.dp),
-                    shape = RoundedCornerShape(14.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = ApplyBlue)
-                ) {
-                    Text(
-                        "Apply Filters",
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White,
-                        fontSize = 16.sp
-                    )
-                }
-            }
-        }
+        AdvancedFilterSheet(
+            sheetState        = sheetState,
+            startAfterStr     = startAfterStr,
+            endBeforeStr      = endBeforeStr,
+            selectedStatus    = selectedStatus,
+            onStatusToggle    = { selectedStatus = if (selectedStatus == it) null else it },
+            selectedOwner     = selectedOwner,
+            ownerList         = ownerList,
+            onOwnerSelect     = { selectedOwner = it },
+            onStartPickerOpen = { showStartPicker = true },
+            onEndPickerOpen   = { showEndPicker = true },
+            onApply           = { doSearch(); showSheet = false },
+            onReset           = { doReset(); showSheet = false },
+            onDismiss         = { showSheet = false }
+        )
     }
 
     // ─────────────────────────────────────────────────────────────────────────
     // MAIN SCREEN
     // ─────────────────────────────────────────────────────────────────────────
     Scaffold(
-        containerColor = SearchPageBg,
+        containerColor = AddPageBg,
         topBar = {
             TopAppBar(
                 title = {
@@ -368,7 +172,7 @@ fun AdvancedSearchScreen(
                         }
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = SearchPageBg)
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AddPageBg)
             )
         }
     ) { padding ->
@@ -384,7 +188,7 @@ fun AdvancedSearchScreen(
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 6.dp),
                 shape = RoundedCornerShape(12.dp),
-                color = SearchCardBg,
+                color = AddCardBg,
                 shadowElevation = 2.dp
             ) {
                 Row(
@@ -397,7 +201,7 @@ fun AdvancedSearchScreen(
                     Icon(
                         Icons.Default.Search,
                         contentDescription = null,
-                        tint = Color(0xFF9CA3AF),
+                        tint = HintColor,
                         modifier = Modifier.size(18.dp)
                     )
                     BasicSearchField(
@@ -414,7 +218,7 @@ fun AdvancedSearchScreen(
                             Icon(
                                 Icons.Default.Clear,
                                 contentDescription = "Clear",
-                                tint = Color(0xFF9CA3AF),
+                                tint = HintColor,
                                 modifier = Modifier.size(16.dp)
                             )
                         }
@@ -483,7 +287,7 @@ fun AdvancedSearchScreen(
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = if (results.isEmpty()) MaterialTheme.colorScheme.error
-                                    else Color(0xFF374151)
+                                    else LabelColor
                         )
                         if (results.isNotEmpty()) {
                             Surface(
@@ -550,6 +354,7 @@ fun AdvancedSearchScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
+                            @Suppress("DEPRECATION")
                             Icon(
                                 Icons.Default.ManageSearch,
                                 contentDescription = null,
@@ -584,220 +389,3 @@ fun AdvancedSearchScreen(
         }
     }
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Date Picker Button  (matches the design image: calendar icon + date text)
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun DatePickerButton(label: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Surface(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(12.dp),
-        color = Color(0xFFF1F3F6),
-        tonalElevation = 0.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            Icon(
-                Icons.Default.CalendarMonth,
-                contentDescription = null,
-                tint = Color(0xFF6B7280),
-                modifier = Modifier.size(16.dp)
-            )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = Color(0xFF374151),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Status Chip  (pill-shaped, blue when selected like the design image)
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun StatusChipButton(label: String, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(50),
-        color = if (selected) ChipSelected else ChipUnselected,
-        tonalElevation = 0.dp
-    ) {
-        Text(
-            text = label,
-            modifier = Modifier.padding(horizontal = 18.dp, vertical = 9.dp),
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-            color = if (selected) ChipSelectedText else ChipUnselectedText
-        )
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Quick filter chip (top of main screen, e.g. Date Range / Status)
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun QuickChip(
-    label: String,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    selected: Boolean,
-    onClick: () -> Unit,
-    iconSize: androidx.compose.ui.unit.Dp = 14.dp
-) {
-    Surface(
-        modifier = Modifier
-            .clip(RoundedCornerShape(50))
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(50),
-        color = if (selected) ChipSelected else SearchCardBg,
-        shadowElevation = if (selected) 0.dp else 2.dp
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            Icon(
-                icon,
-                contentDescription = null,
-                tint = if (selected) Color.White else Color(0xFF6B7280),
-                modifier = Modifier.size(iconSize)
-            )
-            Text(
-                label,
-                style = MaterialTheme.typography.labelMedium,
-                fontWeight = FontWeight.Medium,
-                color = if (selected) Color.White else Color(0xFF374151)
-            )
-            Icon(
-                Icons.Default.KeyboardArrowDown,
-                contentDescription = null,
-                tint = if (selected) Color.White else Color(0xFF9CA3AF),
-                modifier = Modifier.size(14.dp)
-            )
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Inline search field (no border, sits inside the search bar Surface)
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun BasicSearchField(
-    value: String,
-    onValueChange: (String) -> Unit,
-    placeholder: String,
-    modifier: Modifier = Modifier
-) {
-    androidx.compose.foundation.text.BasicTextField(
-        value = value,
-        onValueChange = onValueChange,
-        modifier = modifier,
-        textStyle = MaterialTheme.typography.bodyMedium.copy(color = Color(0xFF111827)),
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(
-            capitalization = KeyboardCapitalization.Sentences,
-            imeAction = ImeAction.Search
-        ),
-        decorationBox = { inner ->
-            if (value.isEmpty()) {
-                Text(
-                    placeholder,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color(0xFF9CA3AF)
-                )
-            }
-            inner()
-        }
-    )
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Search Result Card (matches AdminDashboardScreen style)
-// ─────────────────────────────────────────────────────────────────────────────
-@Composable
-private fun AdvancedSearchResultCard(project: ProjectEntity, onClick: () -> Unit) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .shadow(
-                elevation = 4.dp,
-                shape = RoundedCornerShape(16.dp),
-                ambientColor = Color.Black.copy(alpha = 0.07f),
-                spotColor   = Color.Black.copy(alpha = 0.10f)
-            ),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = SearchCardBg),
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-
-            // Name + status badge
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    project.projectName,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f).padding(end = 8.dp)
-                )
-                StatusTag(status = project.status)
-            }
-
-            // Manager + date
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(Icons.Default.Person, null, tint = Color(0xFF9CA3AF), modifier = Modifier.size(13.dp))
-                    Text(project.manager, style = MaterialTheme.typography.bodySmall, color = Color(0xFF6B7280))
-                }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Icon(Icons.Default.CalendarMonth, null, tint = Color(0xFF9CA3AF), modifier = Modifier.size(13.dp))
-                    Text(
-                        "${project.startDate} → ${project.endDate}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF6B7280)
-                    )
-                }
-            }
-        }
-    }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Helpers
-// ─────────────────────────────────────────────────────────────────────────────
-private fun millisToDisplayAdv(millis: Long): String =
-    SimpleDateFormat("MMM dd, yyyy", Locale.getDefault())
-        .also { it.timeZone = TimeZone.getTimeZone("UTC") }
-        .format(Date(millis))
-
-private fun formatBudgetSearch(amount: Double): String =
-    NumberFormat.getNumberInstance(Locale.US).apply {
-        minimumFractionDigits = 2
-        maximumFractionDigits = 2
-    }.format(amount)
