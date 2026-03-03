@@ -29,11 +29,12 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    themeMode: String = "system",
+    onThemeChange: (String) -> Unit = {},
     onNavigate: (String) -> Unit = {},
     onNavigateBack: () -> Unit = {}
 ) {
     // State for toggles (UI-only, not persisted)
-    var selectedTheme    by remember { mutableStateOf("light") }   // light / dark / system
     var syncAlerts       by remember { mutableStateOf(true) }
     var budgetReminders  by remember { mutableStateOf(false) }
     var syncFrequency    by remember { mutableStateOf("Auto") }    // Auto / Daily / Manual
@@ -178,24 +179,24 @@ fun SettingsScreen(
                         title       = "Light",
                         subtitle    = "Crisp and clean interface",
                         icon        = Icons.Default.WbSunny,
-                        isSelected  = selectedTheme == "light",
-                        onClick     = { selectedTheme = "light" }
+                        isSelected  = themeMode == "light",
+                        onClick     = { onThemeChange("light") }
                     )
                     HorizontalDivider(color = SetBorder, modifier = Modifier.padding(horizontal = 16.dp))
                     ThemeOption(
                         title       = "Dark",
                         subtitle    = "Reduced glare for night use",
                         icon        = Icons.Default.DarkMode,
-                        isSelected  = selectedTheme == "dark",
-                        onClick     = { selectedTheme = "dark" }
+                        isSelected  = themeMode == "dark",
+                        onClick     = { onThemeChange("dark") }
                     )
                     HorizontalDivider(color = SetBorder, modifier = Modifier.padding(horizontal = 16.dp))
                     ThemeOption(
                         title       = "System Default",
                         subtitle    = "Follow device preferences",
                         icon        = Icons.Default.Devices,
-                        isSelected  = selectedTheme == "system",
-                        onClick     = { selectedTheme = "system" }
+                        isSelected  = themeMode == "system",
+                        onClick     = { onThemeChange("system") }
                     )
                 }
             }
@@ -426,7 +427,7 @@ fun SettingsScreen(
                     ) {
                         Icon(Icons.Default.Info, null, tint = Color(0xFFD97706), modifier = Modifier.size(18.dp))
                         Text(
-                            "All features on this page are placeholders and will be implemented in future updates.",
+                            "Most features on this page are placeholders and will be implemented in future updates. Theme selection is fully functional.",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color(0xFF92400E),
                             lineHeight = 16.sp

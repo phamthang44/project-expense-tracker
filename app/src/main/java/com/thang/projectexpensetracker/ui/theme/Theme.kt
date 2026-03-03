@@ -74,10 +74,16 @@ private val DarkColorScheme = darkColorScheme(
 
 @Composable
 fun ProjectExpenseTrackerTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = false, // Use custom palette for consistent branding
+    themeMode: String = "system",           // "light" | "dark" | "system"
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when (themeMode) {
+        "dark"  -> true
+        "light" -> false
+        else    -> isSystemInDarkTheme()    // "system"
+    }
+
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

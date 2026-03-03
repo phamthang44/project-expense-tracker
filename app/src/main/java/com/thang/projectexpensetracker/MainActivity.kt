@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -13,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.thang.projectexpensetracker.ui.screens.*
 import com.thang.projectexpensetracker.ui.theme.ProjectExpenseTrackerTheme
+import com.thang.projectexpensetracker.infrastructure.ThemePreferences
 import com.thang.projectexpensetracker.viewmodel.AddExpenseViewModel
 import com.thang.projectexpensetracker.viewmodel.AddProjectViewModel
 import com.thang.projectexpensetracker.viewmodel.ExpenseViewModel
@@ -23,7 +25,10 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            ProjectExpenseTrackerTheme {
+            val themePreferences = remember { ThemePreferences.getInstance(this@MainActivity) }
+            val themeMode by themePreferences.themeMode.collectAsState()
+
+            ProjectExpenseTrackerTheme(themeMode = themeMode) {
                 val navController = rememberNavController()
                 val projectViewModel:    ProjectViewModel    = viewModel()
                 val addProjectViewModel: AddProjectViewModel = viewModel()
@@ -287,6 +292,8 @@ class MainActivity : ComponentActivity() {
                     // ── 10. Settings ───────────────────────────────────────
                     composable("settings") {
                         SettingsScreen(
+                            themeMode     = themeMode,
+                            onThemeChange = { themePreferences.setThemeMode(it) },
                             onNavigate = { route ->
                                 navController.navigate(route) {
                                     popUpTo("admin_dashboard") { saveState = true }
