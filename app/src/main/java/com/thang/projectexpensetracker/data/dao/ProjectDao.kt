@@ -14,6 +14,10 @@ interface ProjectDao {
     @Query("SELECT * FROM projects")
     fun getAllProjects(): Flow<List<ProjectEntity>>
 
+    /** One-shot list for sync upload (non-Flow). */
+    @Query("SELECT * FROM projects")
+    suspend fun getAllProjectsList(): List<ProjectEntity>
+
     @Query("SELECT * FROM projects WHERE projectName LIKE :query OR description LIKE :query")
     fun searchProjects(query: String): Flow<List<ProjectEntity>>
 

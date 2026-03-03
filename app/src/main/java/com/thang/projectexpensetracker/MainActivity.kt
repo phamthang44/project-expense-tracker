@@ -244,14 +244,17 @@ class MainActivity : ComponentActivity() {
                         val lastSyncTime by syncViewModel.lastSyncTime.collectAsState()
                         val pendingCount by syncViewModel.pendingSyncCount.collectAsState()
                         val isOffline    by syncViewModel.isOffline.collectAsState()
+                        val autoSyncEnabled by syncViewModel.autoSyncEnabled.collectAsState()
 
                         SyncScreen(
                             syncStatus      = syncStatus,
                             lastSyncTime    = lastSyncTime,
                             pendingCount    = pendingCount,
                             isOffline       = isOffline,
+                            autoSyncEnabled = autoSyncEnabled,
                             onSyncNow       = { syncViewModel.triggerSync() },
                             onToggleOffline = { syncViewModel.setOfflineMode(!isOffline) },
+                            onToggleAutoSync = { syncViewModel.toggleAutoSync() },
                             onDismissError  = { syncViewModel.dismissSyncError() },
                             onNavigate      = { route ->
                                 navController.navigate(route) {

@@ -50,8 +50,10 @@ fun SyncScreen(
     lastSyncTime: String?,
     pendingCount: Int,
     isOffline: Boolean,
+    autoSyncEnabled: Boolean,
     onSyncNow: () -> Unit,
     onToggleOffline: () -> Unit,
+    onToggleAutoSync: () -> Unit,
     onDismissError: () -> Unit,
     onNavigate: (String) -> Unit = {},
     onNavigateBack: () -> Unit
@@ -243,14 +245,14 @@ fun SyncScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = SyCard),
                     elevation = CardDefaults.cardElevation(1.dp),
-                    modifier = Modifier.weight(1f).clickable { showComingSoon = true }
+                    modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Icon(Icons.Default.History, null, tint = SyGrey, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.height(8.dp))
                         Text("Last Synced", style = MaterialTheme.typography.bodySmall, color = SyGrey)
                         Text(
-                            "Not Available", // Replaced hardcoded "2 hours ago"
+                            lastSyncTime ?: "Never",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = SyDark
@@ -263,14 +265,14 @@ fun SyncScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = SyCard),
                     elevation = CardDefaults.cardElevation(1.dp),
-                    modifier = Modifier.weight(1f).clickable { showComingSoon = true }
+                    modifier = Modifier.weight(1f)
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Icon(Icons.Default.UploadFile, null, tint = SyGrey, modifier = Modifier.size(20.dp))
                         Spacer(Modifier.height(8.dp))
                         Text("Pending", style = MaterialTheme.typography.bodySmall, color = SyGrey)
                         Text(
-                            "Not Available", // Hidden pending items behind future build
+                            "$pendingCount items",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
                             color = SyDark
@@ -319,7 +321,6 @@ fun SyncScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { showComingSoon = true }
                             .padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween
@@ -333,8 +334,8 @@ fun SyncScreen(
                             }
                         }
                         Switch(
-                            checked = true, // Visual only
-                            onCheckedChange = { showComingSoon = true },
+                            checked = autoSyncEnabled,
+                            onCheckedChange = { onToggleAutoSync() },
                             colors = SwitchDefaults.colors(checkedTrackColor = SyBlue)
                         )
                     }

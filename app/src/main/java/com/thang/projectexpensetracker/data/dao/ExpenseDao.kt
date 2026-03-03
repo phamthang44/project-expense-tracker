@@ -31,5 +31,11 @@ interface ExpenseDao {
     @Query("SELECT projectId, SUM(amount) AS total FROM expenses GROUP BY projectId")
     fun getTotalsByProject(): Flow<Map<@MapColumn("projectId") Long, @MapColumn("total") Double>>
 
+    /** One-shot list for sync upload (non-Flow). */
+    @Query("SELECT * FROM expenses")
+    suspend fun getAllExpenses(): List<ExpenseEntity>
 
+    /** Observable list for auto-sync change detection. */
+    @Query("SELECT * FROM expenses")
+    fun getAllExpensesFlow(): Flow<List<ExpenseEntity>>
 }
