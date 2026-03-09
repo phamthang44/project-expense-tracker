@@ -43,6 +43,9 @@ private val SyLightBlue   = Color(0xFF3B82F6)
 private val SyOrangeBg = Color(0xFFFEF3C7)
 private val SyOrange   = Color(0xFFD97706)
 
+private val SyRedBg = Color(0xFFFEE2E2)
+private val SyRed   = Color(0xFFDC2626)
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SyncScreen(
@@ -139,8 +142,48 @@ fun SyncScreen(
         ) {
             Spacer(Modifier.height(4.dp))
 
-            // ═══════════════════════════════════════════════════════════════
-            // CONNECTED CARD
+            // ═══════════════════════════════════════════════════════════════            // OFFLINE WARNING BANNER
+            // ═══════════════════════════════════════════════════════════
+            AnimatedVisibility(visible = isOffline) {
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = SyRedBg),
+                    elevation = CardDefaults.cardElevation(1.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(44.dp)
+                                .clip(CircleShape)
+                                .background(SyRed.copy(alpha = 0.15f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(Icons.Default.WifiOff, null, tint = SyRed, modifier = Modifier.size(22.dp))
+                        }
+                        Spacer(Modifier.width(14.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "No Internet Connection",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = SyRed
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                "Wi-Fi or mobile data is unavailable. Syncing is paused until the connection is restored.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = SyRed.copy(alpha = 0.8f)
+                            )
+                        }
+                    }
+                }
+            }
+
+            // ═══════════════════════════════════════════════════════════            // CONNECTED CARD
             // ═══════════════════════════════════════════════════════════════
             Card(
                 shape = RoundedCornerShape(12.dp),
@@ -157,26 +200,44 @@ fun SyncScreen(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
-                            .background(SyGreenBg),
+                            .background(if (isOffline) SyRedBg else SyGreenBg),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.CloudDone, null, tint = SyGreen, modifier = Modifier.size(24.dp))
-                        // Little green dot badge
+                        Icon(
+                            if (isOffline) Icons.Default.CloudOff else Icons.Default.CloudDone,
+                            null,
+                            tint = if (isOffline) SyRed else SyGreen,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        // Status dot badge
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
                                 .offset(x = (-4).dp, y = 4.dp)
                                 .size(8.dp)
                                 .clip(CircleShape)
-                                .background(SyGreen)
+                                .background(if (isOffline) SyRed else SyGreen)
                         )
                     }
                     Spacer(Modifier.width(16.dp))
                     
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Connected", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = SyDark)
-                        Text("Encryption: AES-256", style = MaterialTheme.typography.bodySmall, color = SyGrey)
-                        Text("Active", style = MaterialTheme.typography.bodySmall, color = SyGrey)
+                        Text(
+                            if (isOffline) "Disconnected" else "Connected",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (isOffline) SyRed else SyDark
+                        )
+                        Text(
+                            if (isOffline) "No network available" else "Encryption: AES-256",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = SyGrey
+                        )
+                        Text(
+                            if (isOffline) "Offline" else "Active",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isOffline) SyRed else SyGrey
+                        )
                     }
                 }
             }

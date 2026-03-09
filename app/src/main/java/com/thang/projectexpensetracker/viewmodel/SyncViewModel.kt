@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.thang.projectexpensetracker.data.AppDatabase
 import com.thang.projectexpensetracker.infrastructure.ProjectRepository
 import com.thang.projectexpensetracker.model.SyncStatus
+import com.thang.projectexpensetracker.util.NetworkUtils
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -57,6 +58,28 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
         }
         // Auto-sync is enabled by default
         startAutoSyncObservation()
+        // Periodically check real network connectivity
+        startNetworkMonitoring()
+    }
+
+    // ── Network monitoring ──────────────────────────────────────────────────
+
+    private fun startNetworkMonitoring() {
+        viewModelScope.launch {
+            while (true) {
+                val online = NetworkUtils.isOnline(getApplication())
+                if (!online && !_isOffline.value) {
+                    _isOffline.value = true
+                    _syncStatus.value = SyncStatus.OFFLINE
+                } else if (online && _isOffline.value) {
+                    _isOffline.value = false
+                    if (_syncStatus.value == SyncStatus.OFFLINE) {
+                        _syncStatus.value = SyncStatus.IDLE
+                    }
+                }
+                delay(5000) // Re-check every 5 seconds
+            }
+        }
     }
 
     // ── Auto-sync ──────────────────────────────────────────────────────────
