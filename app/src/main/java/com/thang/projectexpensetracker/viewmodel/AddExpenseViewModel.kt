@@ -2,29 +2,21 @@ package com.thang.projectexpensetracker.viewmodel
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
-import com.thang.projectexpensetracker.data.AppDatabase
 import com.thang.projectexpensetracker.data.entity.ExpenseEntity
-import com.thang.projectexpensetracker.infrastructure.ProjectRepository
 import com.thang.projectexpensetracker.model.ExpenseFormState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import kotlinx.coroutines.launch
 
 /**
  * Owns exactly two concerns:
  *   1. Expense form state (fields, validation, building the entity).
- *   2. Draft expense lifecycle (hold → confirm → persist / update).
+ *   2. Draft expense lifecycle (hold → confirm).
  *
- * Expense list queries and CRUD writes are handled by [ExpenseViewModel].
+ * Persistence (insert / update / delete) is delegated to [ExpenseViewModel].
  */
 class AddExpenseViewModel(application: Application) : AndroidViewModel(application) {
-
-    private val db = AppDatabase.getDatabase(application)
-    private val expenseDao = db.expenseDao()
-    private val repository = ProjectRepository(db.projectDao(), db.expenseDao())
 
     // ── Form State ─────────────────────────────────────────────────────────
     private val _expenseFormState = MutableStateFlow(ExpenseFormState())
@@ -117,19 +109,8 @@ class AddExpenseViewModel(application: Application) : AndroidViewModel(applicati
         _draftIsEditMode.value = isEditMode
     }
 
-    fun saveDraftExpense() {
-        viewModelScope.launch {
-            _draftExpense.value?.let {
-                if (_draftIsEditMode.value) {
-                    expenseDao.updateExpense(it)
-                    repository.syncUpsertExpense(it)
-                } else {
-                    expenseDao.insertExpense(it)
-                    repository.syncUpsertExpense(it)
-                }
-                _draftExpense.value    = null
-                _draftIsEditMode.value = false
-            }
-        }
+    fun clearDraft() {
+        _draftExpense.value    = null
+        _draftIsEditMode.value = false
     }
 }

@@ -188,7 +188,12 @@ class MainActivity : ComponentActivity() {
                                 expense    = expense,
                                 isEditMode = isEditModeExp,
                                 onConfirm  = {
-                                    addExpenseViewModel.saveDraftExpense()
+                                    if (isEditModeExp) {
+                                        expenseViewModel.updateExpense(expense)
+                                    } else {
+                                        expenseViewModel.addExpense(expense)
+                                    }
+                                    addExpenseViewModel.clearDraft()
                                     if (isEditModeExp) {
                                         navController.popBackStack()
                                         navController.popBackStack()
