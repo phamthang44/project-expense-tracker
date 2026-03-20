@@ -50,6 +50,7 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
     val autoSyncEnabled: StateFlow<Boolean> = _autoSyncEnabled.asStateFlow()
 
     private var autoSyncJob: Job? = null
+    private var periodicDownloadJob: Job? = null
 
     init {
         // Keep pending count in sync with Room data
@@ -60,6 +61,8 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
         startAutoSyncObservation()
         // Periodically check real network connectivity
         startNetworkMonitoring()
+        // Periodically pull changes from cloud (every 5 minutes)
+        startPeriodicDownload()
     }
 
     // ── Network monitoring ──────────────────────────────────────────────────
@@ -78,6 +81,31 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
                     }
                 }
                 delay(5000) // Re-check every 5 seconds
+            }
+        }
+    }
+
+    // ── Periodic download (pull cloud changes from other apps) ──────────────
+
+    /**
+     * Periodically download expenses from Firestore to sync changes
+     * made by other apps (e.g., React Native app).
+     * Runs every 5 minutes when online and in the background.
+     */
+    private fun startPeriodicDownload() {
+        periodicDownloadJob?.cancel()
+        periodicDownloadJob = viewModelScope.launch {
+            while (true) {
+                delay(300000) // 5 minutes
+                if (!_isOffline.value && 
+                    _autoSyncEnabled.value &&
+                    _syncStatus.value != SyncStatus.SYNCING) {
+                    try {
+                        repository.syncDownloadExpenses()
+                    } catch (e: Exception) {
+                        // Silently fail - this is background sync
+                    }
+                }
             }
         }
     }
@@ -114,10 +142,33 @@ class SyncViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { performSync() }
     }
 
+    /**
+     * Pull only: download cloud changes without uploading local changes.
+     * Useful to get the latest state from other apps without pushing local changes.
+     */
+    fun triggerPullOnly() {
+        viewModelScope.launch { performPullOnly() }
+    }
+
     private suspend fun performSync() {
         if (_syncStatus.value == SyncStatus.SYNCING) return
         _syncStatus.value = SyncStatus.SYNCING
-        val success = repository.syncAll()
+        val success = repository.syncBidirectional()
+        if (success) {
+            _syncStatus.value   = SyncStatus.SUCCESS
+            _lastSyncTime.value =
+                SimpleDateFormat("dd MMM yyyy, HH:mm", Locale.getDefault()).format(Date())
+            delay(3000)
+            _syncStatus.value   = SyncStatus.IDLE
+        } else {
+            _syncStatus.value = SyncStatus.ERROR
+        }
+    }
+
+    private suspend fun performPullOnly() {
+        if (_syncStatus.value == SyncStatus.SYNCING) return
+        _syncStatus.value = SyncStatus.SYNCING
+        val success = repository.syncDownloadExpenses()
         if (success) {
             _syncStatus.value   = SyncStatus.SUCCESS
             _lastSyncTime.value =

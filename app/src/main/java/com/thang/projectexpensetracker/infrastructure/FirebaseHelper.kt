@@ -109,4 +109,43 @@ object FirebaseHelper {
                 }
                 .addOnFailureListener { cont.resume(false) }
         }
+
+    // ── Download / Sync from cloud ─────────────────────────────────────────
+
+    /** Download all expenses from Firestore. Returns empty list on failure. */
+    suspend fun downloadExpenses(): List<ExpenseEntity> =
+        suspendCancellableCoroutine { cont ->
+            db.collection("expenses")
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    val expenses = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            doc.toObject(ExpenseEntity::class.java)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    cont.resume(expenses)
+                }
+                .addOnFailureListener { cont.resume(emptyList()) }
+        }
+
+    /** Download all expenses for a specific project from Firestore. */
+    suspend fun downloadExpensesByProject(projectId: Long): List<ExpenseEntity> =
+        suspendCancellableCoroutine { cont ->
+            db.collection("expenses")
+                .whereEqualTo("projectId", projectId)
+                .get()
+                .addOnSuccessListener { snapshot ->
+                    val expenses = snapshot.documents.mapNotNull { doc ->
+                        try {
+                            doc.toObject(ExpenseEntity::class.java)
+                        } catch (e: Exception) {
+                            null
+                        }
+                    }
+                    cont.resume(expenses)
+                }
+                .addOnFailureListener { cont.resume(emptyList()) }
+        }
 }

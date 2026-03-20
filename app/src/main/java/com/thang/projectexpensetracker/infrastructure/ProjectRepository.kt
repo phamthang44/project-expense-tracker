@@ -27,6 +27,72 @@ class ProjectRepository(
         return projOk && expOk
     }
 
+    /**
+     * Full bidirectional sync: upload local changes AND download cloud changes.
+     * Cloud data takes precedence when conflicts occur.
+     * Returns true if both upload and download succeed.
+     */
+    suspend fun syncBidirectional(): Boolean {
+        // Upload phase: push local changes to cloud
+        val projects = projectDao.getAllProjectsList()
+        val expenses = expenseDao.getAllExpenses()
+        val uploadOk = FirebaseHelper.uploadProjects(projects) && 
+                       FirebaseHelper.uploadExpenses(expenses)
+        
+        // Download phase: pull cloud changes into local
+        val downloadOk = syncDownloadExpenses()
+        
+        return uploadOk && downloadOk
+    }
+
+    /**
+     * Download all expenses from Firestore and merge into local database.
+     * Cloud data overwrites local data for matching expense IDs.
+     * Returns true if download succeeds (even if zero expenses exist).
+     */
+    suspend fun syncDownloadExpenses(): Boolean {
+        return try {
+            val cloudExpenses = FirebaseHelper.downloadExpenses()
+            if (cloudExpenses.isNotEmpty()) {
+                // Upsert all expenses: update if exists, insert if new
+                cloudExpenses.forEach { expense ->
+                    val existing = expenseDao.getExpenseById(expense.expenseId)
+                    if (existing != null) {
+                        expenseDao.updateExpense(expense)
+                    } else {
+                        expenseDao.insertExpense(expense)
+                    }
+                }
+            }
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    /**
+     * Download expenses for a specific project from Firestore and merge into local.
+     * Cloud data overwrites local data for matching expense IDs.
+     */
+    suspend fun syncDownloadExpensesForProject(projectId: Long): Boolean {
+        return try {
+            val cloudExpenses = FirebaseHelper.downloadExpensesByProject(projectId)
+            if (cloudExpenses.isNotEmpty()) {
+                cloudExpenses.forEach { expense ->
+                    val existing = expenseDao.getExpenseById(expense.expenseId)
+                    if (existing != null) {
+                        expenseDao.updateExpense(expense)
+                    } else {
+                        expenseDao.insertExpense(expense)
+                    }
+                }
+            }
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
     // ── Individual project CRUD → Firestore ────────────────────────────────
 
     /** Mirror a newly-inserted or updated project to Firestore. */
